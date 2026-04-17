@@ -72,7 +72,7 @@
       .admin-item-row { padding: 8px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
       .admin-total-row { padding: 10px 15px; background: var(--oak-purple); color: white; display: flex; justify-content: space-between; font-weight: bold; }
 
-      /* DIALOG CONFIRMACION */
+      /* DIALOG CONFIRMACION & DETALLE */
       dialog { border: none; border-radius: 20px; padding: 0; width: 90%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease; }
       dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
       .dialog-header { background: var(--oak-purple); color: white; padding: 20px; text-align: center; font-weight: 800; text-transform: uppercase; }
@@ -80,6 +80,12 @@
       .dialog-footer { padding: 20px; display: flex; gap: 10px; background: #f8f9fa; }
       .conf-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.9rem; }
       .unit-badge { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
+      
+      /* NUEVO CÓDIGO INICIO: Cursor pointer para iconos clickeables */
+      .clickable-icon { cursor: pointer; transition: transform 0.2s; }
+      .clickable-icon:active { transform: scale(0.9); }
+      /* NUEVO CÓDIGO FIN */
+
       @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
   </head>
@@ -125,7 +131,8 @@
           <h5 class="fw-bold m-0" style="color:var(--oak-purple)">DASHBOARD</h5>
           <button class="btn-exit" onclick="goHome()">SALIR</button>
         </div>
-        <button class="oak-btn btn-primary-gradient" onclick="loadAdminReport()"><i class="bi bi-eye"></i> VER REPORTE DETALLADO</button>
+        <!-- NUEVO CÓDIGO INICIO: Boton Ver Reporte Detallado ELIMINADO -->
+        <!-- NUEVO CÓDIGO FIN -->
         <div class="mb-4 shadow-sm" style="border-radius:15px;">
           <div class="admin-table-container"><div class="col-suc">SUCURSAL</div><div class="col-stat">DIARIO</div><div class="col-stat">GRAL</div></div>
           <div id="adm-list-container"></div>
@@ -143,14 +150,13 @@
           </div>
           <button class="oak-btn btn-secondary-white m-0" onclick="saveConfigDays()">ACTUALIZAR DÍAS</button>
         </div>
-        <button class="oak-btn btn-dark-purple" onclick="saveClose()"><i class="bi bi-save"></i> GUARDAR CIERRE DEL DÍA</button>
+        <!-- NUEVO CÓDIGO INICIO: Boton Guardar Cierre ELIMINADO -->
+        <!-- NUEVO CÓDIGO FIN -->
       </div>
       
       <!-- DETALLES REPORTE -->
-      <div id="screen-admin-report" class="hidden">
-        <div class="d-flex justify-content-between align-items-center mb-4 px-2"><h5 class="fw-bold m-0 text-oak">REPORTE HOY</h5><button class="btn btn-sm btn-dark rounded-pill fw-bold" onclick="navTo('screen-admin-dash')">VOLVER</button></div>
-        <div id="report-container"></div>
-      </div>
+      <!-- NUEVO CÓDIGO INICIO: Pantalla de reporte completo eliminada, reemplazada por Dialog -->
+      <!-- NUEVO CÓDIGO FIN -->
 
       <!-- OPERATIVO LOGIN -->
       <div id="screen-op-login" class="hidden">
@@ -178,7 +184,7 @@
 
       <div id="screen-success" class="hidden text-center py-5"><div class="mb-4 text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div><h3 class="fw-bold mb-3" style="color:var(--oak-purple)">¡ÉXITO!</h3><p class="text-muted fw-bold mb-5 px-4" id="suc-msg"></p><button class="oak-btn btn-secondary-white" style="width:auto;margin:0 auto;" onclick="goHome()">VOLVER</button></div>
       
-      <!-- DIALOGO CONFIRMACION -->
+      <!-- DIALOGO CONFIRMACION ENVIO -->
       <dialog id="confirmDialog">
         <div class="dialog-header">CONFIRMAR ENVÍO</div>
         <div class="dialog-body">
@@ -186,10 +192,22 @@
           <div id="dialogContent"></div>
         </div>
         <div class="dialog-footer">
-          <button class="btn btn-secondary w-50" onclick="closeDialog()">EDITAR</button>
+          <button class="btn btn-secondary w-50" onclick="closeDialog('confirmDialog')">EDITAR</button>
           <button class="btn btn-success w-50 fw-bold" onclick="finalSend()">CONFIRMAR</button>
         </div>
       </dialog>
+
+      <!-- NUEVO CÓDIGO INICIO: DIALOGO DETALLE ADMIN -->
+      <dialog id="detailDialog">
+        <div class="dialog-header" id="detailHeader">DETALLE</div>
+        <div class="dialog-body" id="detailContent">
+          <div class="text-center"><div class="spinner-border text-primary"></div></div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-dark w-100 fw-bold" onclick="closeDialog('detailDialog')">CERRAR</button>
+        </div>
+      </dialog>
+      <!-- NUEVO CÓDIGO FIN -->
 
     </div>
 
@@ -199,8 +217,8 @@
         window.google = { script: { run: { withSuccessHandler: function(cb) { return { withFailureHandler: function(ec) { return {
           obtenerDatosIniciales: function() { setTimeout(()=>cb({diario:[{nombre:"Vaso",unidad:"PZ"}], general:[{nombre:"Acai",unidad:"BOTE",empaques:"Bote"}], empaques:[{nombre:"Bote",tipo:"R",valor:100}], usuarios:[{sucursal:"Roma",nombre:"Juan",id:"123"}], admins:["Admin"], config:{diasGeneral:[1,4], diaActual:1}}),800); },
           loginAdminUser: function() { setTimeout(()=>cb({success:true}),800); },
-          obtenerReporteAdminDetallado: function() { setTimeout(()=>cb({"Roma":{totalDinero:5000, grupos:{"ProvA":[{producto:"X", cantidad:10, total:100}]}}}),1000); },
-          obtenerDashboardAdmin: function() { setTimeout(()=>cb({reporte:[{sucursal:"Roma", diario:"PENDIENTE", general:"PENDIENTE"}], configDias:[1,4]}),800); },
+          obtenerDetalleSucursal: function() { setTimeout(()=>cb([{producto:"Acai", cantidad:5, unidad:"BOTE"}]),800); },
+          obtenerDashboardAdmin: function() { setTimeout(()=>cb({reporte:[{sucursal:"Roma", diario:"CARGADO", general:"PENDIENTE"}], configDias:[1,4]}),800); },
           guardarTransaccion: function() { setTimeout(()=>cb("OK Mock"),800); },
           guardarConfigDias: function() { setTimeout(()=>cb("Dias Guardados"),800); }
         }}}}}}};
@@ -232,10 +250,55 @@
       // --- ADMIN ---
       function initAdminLogin(){ document.getElementById('adm-msg').innerText=""; navTo('screen-admin-login'); }
       function doAdminLogin(){ var u=document.getElementById('adm-user').value, p=document.getElementById('adm-pass').value; if(!u||u.includes('Usuario')||!p){document.getElementById('adm-msg').innerText="Faltan datos";return;} document.getElementById('btn-adm-go').disabled=true; google.script.run.withSuccessHandler(r=>{ document.getElementById('btn-adm-go').disabled=false; if(r.success) loadDash(); else document.getElementById('adm-msg').innerText=r.msg; }).withFailureHandler(alert).loginAdminUser(u,p); }
-      function loadDash(){ google.script.run.withSuccessHandler(res=>{ var d=res.reporte; var t=document.getElementById('adm-list-container'); t.innerHTML=''; if(d.length===0){t.innerHTML='<div class="p-3 text-center text-muted">Sin sucursales</div>';}else{d.forEach(r=>{ var c1=r.diario=='CARGADO'?'<i class="bi bi-check-circle-fill text-success" style="font-size:1.3rem;"></i>':'<i class="bi bi-x-circle-fill text-danger" style="font-size:1.3rem;"></i>'; var c2=r.general=='NO TOCA'?'<i class="bi bi-dash-circle text-muted" style="font-size:1.3rem;"></i>' : (r.general=='CARGADO'?'<i class="bi bi-check-circle-fill text-success" style="font-size:1.3rem;"></i>':'<i class="bi bi-x-circle-fill text-danger" style="font-size:1.3rem;"></i>'); t.innerHTML+=`<div class="admin-table-row"><div class="col-suc">${r.sucursal}</div><div class="col-stat">${c1}</div><div class="col-stat">${c2}</div></div>`; });} document.querySelectorAll('.day-check').forEach(c=>c.checked=res.configDias.includes(parseInt(c.value))); navTo('screen-admin-dash'); }).obtenerDashboardAdmin(); }
-      function loadAdminReport() { document.getElementById('report-container').innerHTML='<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>'; navTo('screen-admin-report'); google.script.run.withSuccessHandler(rep=>{ var html=''; if(Object.keys(rep).length===0) html='<div class="alert alert-warning text-center">Sin datos hoy.</div>'; for(var s in rep){ var d=rep[s]; var tf=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(d.totalDinero); html+=`<div class="clean-card admin-sucursal-card mb-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold m-0 text-oak">${s}</h5></div>${Object.keys(d.grupos).map(p=>`<div class="admin-prov-header">${p}</div>${d.grupos[p].map(i=>`<div class="admin-item-row"><span>${i.producto} (${i.cantidad})</span><span class="text-muted small">$${i.total.toFixed(2)}</span></div>`).join('')}`).join('')}<div class="admin-total-row mt-2"><span>TOTAL</span><span>${tf}</span></div></div>`; } document.getElementById('report-container').innerHTML=html; }).obtenerReporteAdminDetallado(); }
+      
+      // NUEVO CÓDIGO INICIO: Modificación de loadDash para incluir onclicks
+      function loadDash(){ 
+        google.script.run.withSuccessHandler(res=>{ 
+          var d=res.reporte; var t=document.getElementById('adm-list-container'); t.innerHTML=''; 
+          if(d.length===0){t.innerHTML='<div class="p-3 text-center text-muted">Sin sucursales</div>';}
+          else{
+            d.forEach(r=>{ 
+              // Generar Icono Diario
+              var c1 = '<i class="bi bi-x-circle-fill text-danger" style="font-size:1.3rem;"></i>';
+              if(r.diario=='CARGADO') {
+                c1 = `<i class="bi bi-check-circle-fill text-success clickable-icon" style="font-size:1.3rem;" onclick="openBranchDetail('${r.sucursal}','DIARIO')"></i>`;
+              }
+
+              // Generar Icono General
+              var c2 = '<i class="bi bi-x-circle-fill text-danger" style="font-size:1.3rem;"></i>';
+              if(r.general=='NO TOCA') {
+                c2 = '<i class="bi bi-dash-circle text-muted" style="font-size:1.3rem;"></i>';
+              } else if(r.general=='CARGADO') {
+                c2 = `<i class="bi bi-check-circle-fill text-success clickable-icon" style="font-size:1.3rem;" onclick="openBranchDetail('${r.sucursal}','GENERAL')"></i>`;
+              }
+              
+              t.innerHTML+=`<div class="admin-table-row"><div class="col-suc">${r.sucursal}</div><div class="col-stat">${c1}</div><div class="col-stat">${c2}</div></div>`; 
+            });
+          } 
+          document.querySelectorAll('.day-check').forEach(c=>c.checked=res.configDias.includes(parseInt(c.value))); 
+          navTo('screen-admin-dash'); 
+        }).obtenerDashboardAdmin(); 
+      }
+
+      function openBranchDetail(suc, tipo) {
+        document.getElementById('detailHeader').innerText = suc + " (" + tipo + ")";
+        document.getElementById('detailContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+        document.getElementById('detailDialog').showModal();
+        
+        google.script.run.withSuccessHandler(data => {
+          var html = '<ul class="list-group list-group-flush">';
+          if(data.length === 0) html += '<li class="list-group-item text-center">Sin datos</li>';
+          data.forEach(item => {
+            html += `<li class="conf-item"><div>${item.producto} <span class="unit-badge">${item.unidad}</span></div><div class="fw-bold">${item.cantidad}</div></li>`;
+          });
+          html += '</ul>';
+          document.getElementById('detailContent').innerHTML = html;
+        }).obtenerDetalleSucursal(suc, tipo);
+      }
+      // NUEVO CÓDIGO FIN
+
       function saveConfigDays(){ var c=document.querySelectorAll('.day-check:checked'); if(c.length<1||c.length>2){alert("Selecciona 1 o 2 días.");return;} var dias=Array.from(c).map(x=>parseInt(x.value)); google.script.run.withSuccessHandler(alert).guardarConfigDias(dias); }
-      function saveClose(){ google.script.run.withSuccessHandler(r=>alert(r)).guardarCierreDia(); }
+      // saveClose ELIMINADO
 
       // --- OPERATIVO ---
       function initFlow(m){ SESS.mode=m; navTo('screen-op-login'); }
@@ -245,12 +308,37 @@
       function setupWorkScreen(){
          document.getElementById('work-user').innerText=SESS.user.nombre; var c=document.getElementById('work-container'); c.innerHTML=''; var t=document.getElementById('work-title');
          
+         // Resetear botón siempre al inicio
+         document.getElementById('btn-submit').innerText = "ENVIAR REPORTE";
+         
          if(SESS.mode==='DIARIO'){ 
            t.innerText="INVENTARIO DIARIO"; 
-           DB.diario.forEach(p=>{ 
-             var st=(p.unidad.toUpperCase().includes('KG')||p.unidad.toUpperCase().includes('L')||p.unidad.toUpperCase().includes('LT')) ? 0.1 : 1; 
-             c.innerHTML+=`<div class="product-item"><div class="d-flex justify-content-between align-items-center mb-3"><span class="fw-bold" style="color:var(--oak-purple)">${p.nombre}</span><span class="badge bg-light text-secondary border rounded-pill">${p.unidad}</span></div><div class="input-group"><button class="btn btn-outline-secondary rounded-start" style="width:50px" onclick="adj(this,-${st})">-</button><input type="number" class="form-control text-center fw-bold inp-val cacheable" data-p="${p.nombre}" placeholder="0" step="${st}" style="border-radius:0" oninput="saveToCache()"><button class="btn btn-outline-secondary rounded-end" style="width:50px" onclick="adj(this,${st})">+</button></div></div>`; 
-           }); 
+           
+           // Agrupación por proveedor en Inventario Diario
+           var grupos = {};
+           DB.diario.forEach(p => {
+             var prov = p.proveedor || 'GENERAL';
+             if(!grupos[prov]) grupos[prov] = [];
+             grupos[prov].push(p);
+           });
+
+           for (var prov in grupos) {
+             c.innerHTML += `<div class="provider-label">${prov}</div>`;
+             grupos[prov].forEach(p => {
+                 var st=(p.unidad.toUpperCase().includes('KG')||p.unidad.toUpperCase().includes('L')||p.unidad.toUpperCase().includes('LT')) ? 0.1 : 1; 
+                 c.innerHTML += `<div class="product-item">
+                   <div class="d-flex justify-content-between align-items-center mb-3">
+                     <span class="fw-bold" style="color:var(--oak-purple)">${p.nombre}</span>
+                     <span class="badge bg-light text-secondary border rounded-pill">${p.unidad}</span>
+                   </div>
+                   <div class="input-group">
+                     <button class="btn btn-outline-secondary rounded-start" style="width:50px" onclick="adj(this,-${st})">-</button>
+                     <input type="number" class="form-control text-center fw-bold inp-val cacheable" data-p="${p.nombre}" placeholder="0" step="${st}" style="border-radius:0" oninput="saveToCache()">
+                     <button class="btn btn-outline-secondary rounded-end" style="width:50px" onclick="adj(this,${st})">+</button>
+                   </div>
+                 </div>`; 
+             });
+           }
          }
          else if(SESS.mode==='GENERAL'){ 
             t.innerText="INVENTARIO GENERAL"; var gr={}; 
@@ -272,13 +360,70 @@
               }); 
             } 
          }
-         else { t.innerText="ENTRADA"; var opts=DB.general.map(p=>`<option value="${p.nombre}">${p.nombre}</option>`).join(''); c.innerHTML=`<div class="clean-card"><label class="small fw-bold text-muted mb-2">PRODUCTO</label><select id="e-prod" class="form-select mb-3" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;">${opts}</select><label class="small fw-bold text-muted mb-2">CANTIDAD</label><input type="number" id="e-qty" class="form-control mb-4" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;"><button class="oak-btn btn-dark-purple m-0" onclick="addCart()">+ AGREGAR</button></div><div id="cart-list"></div>`; CART=[]; renderCart(); }
+         else { 
+            // NUEVO CÓDIGO INICIO: Reestructuración visual Entrada Mercancia
+            t.innerText="ENTRADA MERCANCÍA"; 
+            
+            // Obtener proveedores únicos del CatalogoIngreso (DB.ingreso)
+            var providers = [...new Set(DB.ingreso.map(i => i.proveedor))].sort();
+            var provOptions = providers.map(p => `<option value="${p}">${p}</option>`).join('');
+
+            c.innerHTML = `
+              <div class="clean-card">
+                <label class="small fw-bold text-muted mb-2">PROVEEDOR</label>
+                <select id="e-prov" class="form-select mb-3" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;" onchange="renderIngresoProducts(this.value)">
+                  <option selected disabled>Selecciona Proveedor</option>
+                  ${provOptions}
+                </select>
+
+                <label class="small fw-bold text-muted mb-2">PRODUCTO</label>
+                <select id="e-prod" class="form-select mb-3" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;" onchange="updateIngresoUnit()" disabled>
+                  <option selected disabled>Selecciona Producto</option>
+                </select>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                   <label class="small fw-bold text-muted m-0">CANTIDAD</label>
+                   <span id="e-unit-disp" class="badge bg-light text-secondary border"></span>
+                </div>
+                
+                <input type="number" id="e-qty" class="form-control mb-4" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;">
+                <button class="oak-btn btn-dark-purple m-0" onclick="addCart()">+ AGREGAR</button>
+              </div>
+              <div id="cart-list"></div>`; 
+            
+            CART=[]; 
+            renderCart();
+            // Cambiar texto del botón inferior
+            document.getElementById('btn-submit').innerText = "INGRESAR MERCANCÍA";
+            // NUEVO CÓDIGO FIN
+         }
          
          navTo('screen-work');
          
          if(SESS.mode !== 'GENERAL') loadFromCache();
       }
       
+      // NUEVO CÓDIGO INICIO: Funciones auxiliares para filtro dinamico Entrada
+      function renderIngresoProducts(prov) {
+        var prodSelect = document.getElementById('e-prod');
+        prodSelect.innerHTML = '<option selected disabled>Selecciona Producto</option>';
+        prodSelect.disabled = false;
+        
+        var filtered = DB.ingreso.filter(i => i.proveedor === prov);
+        filtered.forEach(p => {
+          prodSelect.add(new Option(p.nombre, p.nombre));
+        });
+        document.getElementById('e-unit-disp').innerText = "";
+      }
+
+      function updateIngresoUnit() {
+        var pName = document.getElementById('e-prod').value;
+        var p = DB.ingreso.find(x => x.nombre === pName);
+        if(p) document.getElementById('e-unit-disp').innerText = p.unidad;
+        else document.getElementById('e-unit-disp').innerText = "";
+      }
+      // NUEVO CÓDIGO FIN
+
       function row(l,p,o){ return `<div class="row g-2 mb-2 align-items-center row-calc"><div class="col-2 small fw-bold text-muted">${l}</div><div class="col-5"><select class="form-select form-select-sm ie cacheable" style="border-radius:8px;font-weight:600" onchange="calc('${p}');saveToCache()">${o}</select></div><div class="col-3"><input type="number" class="form-control form-control-sm iq text-center cacheable" style="border-radius:8px;font-weight:600" oninput="calc('${p}');saveToCache()"></div><div class="col-2 text-end small fw-bold iv text-primary">0</div></div>`; }
       function adj(b,v){ 
          var i=b.parentElement.querySelector('input'); 
@@ -300,48 +445,39 @@
       function addCart(){ var p=document.getElementById('e-prod').value, q=document.getElementById('e-qty').value; if(!p||q<=0)return; CART.push({producto:p,cantidad:q}); renderCart(); document.getElementById('e-qty').value=''; }
       function renderCart(){ document.getElementById('cart-list').innerHTML=CART.map((c,i)=>`<div class="d-flex justify-content-between border-bottom py-3 px-2"><span>${c.producto}</span><span>${c.cantidad} <i class="bi bi-x-circle-fill text-danger ms-2" onclick="CART.splice(${i},1);renderCart()"></i></span></div>`).join(''); }
       
-      // NUEVO CÓDIGO INICIO: Helper para obtener unidad
+      // NUEVO CÓDIGO INICIO: Helper actualizado para obtener unidad segun modo
       function getUnidadMedida(prodName) {
-        var catalog = SESS.mode === 'DIARIO' ? DB.diario : DB.general;
+        var catalog;
+        if (SESS.mode === 'DIARIO') catalog = DB.diario;
+        else if (SESS.mode === 'GENERAL') catalog = DB.general;
+        else if (SESS.mode === 'ENTRADA') catalog = DB.ingreso; // CatalogoIngreso
+        
         var item = catalog.find(p => p.nombre === prodName);
         return item ? item.unidad : '';
       }
       // NUEVO CÓDIGO FIN
 
-      // NUEVO CÓDIGO INICIO: Lógica de Relleno de Ceros
+      // NUEVO CÓDIGO INICIO: Ajuste lógica de ceros y payload
       function generarPayloadCompleto(itemsCapturados) {
         var catalogoMaestro = SESS.mode === 'DIARIO' ? DB.diario : DB.general;
         
         return catalogoMaestro.map(prodMaestro => {
-          // Buscar si el usuario capturó este producto
           var capturado = itemsCapturados.find(i => i.producto === prodMaestro.nombre);
-          
           if (capturado) {
-            return capturado; // Si existe, usamos el dato del usuario
+            return capturado; 
           } else {
-            // Si no existe, creamos un registro en cero
-            if (SESS.mode === 'DIARIO' || SESS.mode === 'ENTRADA') {
-              return { 
-                producto: prodMaestro.nombre, 
-                cantidad: 0 
-              };
+            if (SESS.mode === 'DIARIO') {
+              return { producto: prodMaestro.nombre, cantidad: 0 };
             } else {
-              // Modo GENERAL requiere estructura compleja
-              return { 
-                producto: prodMaestro.nombre, 
-                proveedor: prodMaestro.proveedor, 
-                back: 0, front: 0, uso: 0, total: 0 
-              };
+              return { producto: prodMaestro.nombre, proveedor: prodMaestro.proveedor, back: 0, front: 0, uso: 0, total: 0 };
             }
           }
         });
       }
-      // NUEVO CÓDIGO FIN
 
       function submitWork(){ 
         var items=[]; 
         var tipoRegistro = SESS.mode;
-        
         if(SESS.mode==='DIARIO'){ 
            document.querySelectorAll('.inp-val').forEach(i=>{if(i.value>0)items.push({producto:i.dataset.p,cantidad:i.value})}); 
            tipoRegistro = 'INVENTARIO'; 
@@ -349,31 +485,23 @@
         else if(SESS.mode==='GENERAL'){ document.querySelectorAll('.product-item').forEach(c=>{ var p=c.id.replace('c-',''), t=parseFloat(document.getElementById('t-'+p).innerText)||0; if(t>0){ var rs=c.querySelectorAll('.row-calc'); items.push({producto:p,proveedor:DB.general.find(x=>x.nombre==p).proveedor,back:rs[0].querySelector('.iv').innerText,front:rs[1].querySelector('.iv').innerText,uso:rs[2].querySelector('.iv').innerText,total:t}); } }); } 
         else items=CART; 
         
-        // Comentado validacion vacio para permitir ceros si se desea, o mantener si se requiere al menos 1
-        // if(!items.length && SESS.mode!=='ENTRADA') return alert("Inventario Vacío"); 
-        
-        // NUEVO CÓDIGO INICIO: Generar payload completo con ceros
         var itemsCompletos = items; 
-        if (SESS.mode !== 'ENTRADA') { // Entrada no necesita rellenar con ceros todo el catalogo
-             itemsCompletos = generarPayloadCompleto(items);
-        }
+        // Entrada NO se rellena con ceros, solo lo capturado
+        if (SESS.mode !== 'ENTRADA') { itemsCompletos = generarPayloadCompleto(items); }
 
         CURRENT_PAYLOAD = {
            tipo:tipoRegistro, 
            sucursal:SESS.user.sucursal,
            colaborador:SESS.user.nombre,
-           items:itemsCompletos // Usamos la lista completa
+           items:itemsCompletos 
         };
-        
-        showConfirmDialog(items); // Mostramos solo lo capturado para facilitar lectura
-        // NUEVO CÓDIGO FIN
+        showConfirmDialog(items); 
       }
+      // NUEVO CÓDIGO FIN
       
-      // NUEVO CÓDIGO INICIO: Funciones de Diálogo
       function showConfirmDialog(items) {
         var html = '<ul class="list-group list-group-flush">';
         if(items.length === 0) html += '<li class="list-group-item text-center text-muted">Sin cantidades registradas (Se enviará todo en 0)</li>';
-        
         items.forEach(i => {
            var qty = i.total !== undefined ? i.total : i.cantidad;
            var unit = getUnidadMedida(i.producto);
@@ -384,12 +512,13 @@
         document.getElementById('confirmDialog').showModal();
       }
       
-      function closeDialog() {
-        document.getElementById('confirmDialog').close();
+      // Helper para cerrar cualquier dialog
+      function closeDialog(id) {
+        document.getElementById(id).close();
       }
       
       function finalSend() {
-        closeDialog();
+        closeDialog('confirmDialog');
         document.getElementById('btn-submit').disabled=true; 
         document.getElementById('btn-submit').innerText="ENVIANDO...";
         
@@ -403,7 +532,6 @@
            document.getElementById('btn-submit').disabled=false;
         }).guardarTransaccion(CURRENT_PAYLOAD);
       }
-      // NUEVO CÓDIGO FIN
 
       // --- CACHE ---
       function saveToCache() {
@@ -422,7 +550,6 @@
       }
       function clearCache() { localStorage.removeItem('oak_cache_' + SESS.mode + '_' + SESS.user.sucursal); }
       
-      // Instalación PWA Hint
       window.addEventListener('load', () => {
         if (!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone) {
           console.log('Navegador detectado. Instala la app para mejor experiencia.');
