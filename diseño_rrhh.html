@@ -1,0 +1,582 @@
+/**
+ * SISTEMA OAKBERRY - BACKEND V30
+ * Modificado por: Asistente
+ */
+
+function doGet() {
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('OAKBERRY Check-In')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+}
+
+// --- 1. DATOS PÚBLICOS ---
+function obtenerDatosIniciales() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetColab = ss.getSheetByName('Colaboradores');
+    const sheetConfig = ss.getSheetByName('Configuracion');
+
+    if (!sheetColab || !sheetConfig) throw new Error("Faltan hojas de configuración.");
+
+    const datosColab = sheetColab.getDataRange().getValues().filter(f => f[0] !== "" && f[1] !== "");
+    if(datosColab.length > 0 && datosColab[0][0].toString().toLowerCase().includes("id")) datosColab.shift();
+
+    const datosConfig = sheetConfig.getDataRange().getValues();
+    if(datosConfig.length > 0 && datosConfig[0][0].toString().toLowerCase().includes("sucursal")) datosConfig.shift();
+
+    let estructura = {}; 
+    let listaGlobal = []; 
+    let coordenadas = {};
+    let listaSucursales = [];
+    
+    datosConfig.forEach(fila => {
+      let sucursalRaw = fila[0].toString();
+      let sucursal = sucursalRaw.trim().toUpperCase(); 
+      let sucursalOriginal = sucursalRaw.trim(); 
+
+      if (sucursal) {
+        estructura[sucursal] = []; 
+        listaSucursales.push(sucursalOriginal); 
+        let lat = parseFloat(fila[8]);
+        let lng = parseFloat(fila[9]);
+        
+        let radio = parseFloat(fila[12]); // Columna M
+
+        if (!isNaN(lat) && !isNaN(lng)) { 
+            coordenadas[sucursal] = { 
+                lat: lat, 
+                lng: lng,
+                radio: radio || 50 
+            }; 
+        }
+      }
+    });
+
+    datosColab.forEach(fila => {
+      let id = fila[0].toString().trim();
+      let nombre = fila[1].toString().trim().toUpperCase();
+      let sucursalRaw = fila[2].toString();
+      let sucursalKey = sucursalRaw.trim().toUpperCase();
+
+      listaGlobal.push({ nombre: nombre, id: id, sucursalOrigen: sucursalRaw.trim() });
+
+      if (estructura.hasOwnProperty(sucursalKey)) {
+        estructura[sucursalKey].push({ nombre: nombre, id: id });
+      } else {
+        let key = Object.keys(estructura).find(k => k === sucursalKey);
+        if(key) estructura[key].push({ nombre: nombre, id: id });
+      }
+    });
+
+    return { mapa: estructura, listaGlobal: listaGlobal, coords: coordenadas, listaSucursales: listaSucursales };
+  } catch (e) { throw new Error(e.message); }
+}
+
+// --- 2. VALIDACIÓN Y ESTADO ---
+function verificarEstadoUsuario(nombre, id) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetColab = ss.getSheetByName('Colaboradores');
+  const datos = sheetColab.getDataRange().getValues();
+  let esValido = false;
+  
+  for(let i=0; i<datos.length; i++) {
+    if(datos[i][0].toString().trim() === id.toString().trim() && 
+       datos[i][1].toString().trim().toUpperCase() === nombre.toString().trim().toUpperCase()) {
+      esValido = true;
+      break;
+    }
+  }
+
+  if(!esValido) return { valido: false, mensaje: "ID o Nombre incorrectos." };
+
+  const sheetTracker = ss.getSheetByName('Asistencia_Diaria');
+  let estado = { entrada: false, salidaComida: false, regresoComida: false, salida: false };
+  
+  if(sheetTracker) {
+    const hoy = new Date();
+    const datosTracker = sheetTracker.getDataRange().getValues();
+    for (let i = datosTracker.length - 1; i > 0; i--) {
+      let tFecha = datosTracker[i][0];
+      let tNombre = datosTracker[i][3];
+      if (tFecha instanceof Date && esMismoDia(tFecha, hoy) && tNombre.toString().trim() === nombre.toString().trim()) {
+        if (datosTracker[i][4]) estado.entrada = true;
+        if (datosTracker[i][5]) estado.salidaComida = true;
+        if (datosTracker[i][6]) estado.regresoComida = true;
+        if (datosTracker[i][7]) estado.salida = true;
+        break;
+      }
+    }
+  }
+
+  return { valido: true, estado: estado };
+}
+
+// --- 3. PROCESAMIENTO ---
+function procesarRegistro(datos) {
+  const bloqueo = LockService.getScriptLock();
+  try {
+    bloqueo.waitLock(10000);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetReg = ss.getSheetByName('Registros');
+    const sheetTracker = ss.getSheetByName('Asistencia_Diaria');
+    const sheetConfig = ss.getSheetByName('Configuracion');
+    
+    if(!sheetReg || !sheetTracker) throw new Error("Faltan hojas de base de datos");
+
+    let nombreFinal = datos.nombre.trim();
+    let sucursalFisica = datos.sucursal;
+    
+    // NUEVO CÓDIGO INICIO: Limpieza Sucursal (Siempre nombre físico)
+    // Se elimina cualquier concatenación de "APOYO". Se registra limpio.
+    let sucursalRegistroDisplay = sucursalFisica; 
+    // NUEVO CÓDIGO FIN
+
+    const fechaHora = new Date();
+    let datosTracker = sheetTracker.getDataRange().getValues();
+    let filaEncontrada = -1;
+    let horaEntradaRegistrada = null;
+
+    for (let i = datosTracker.length - 1; i > 0; i--) {
+      if (datosTracker[i][0] instanceof Date && esMismoDia(datosTracker[i][0], fechaHora) && datosTracker[i][3].toString().trim() === nombreFinal) {
+        filaEncontrada = i + 1; 
+        let valEntrada = datosTracker[i][4]; 
+        if (valEntrada) horaEntradaRegistrada = parseHoraTexto(valEntrada, fechaHora);
+        break;
+      }
+    }
+
+    let urlFoto = "";
+    if (datos.imagenBase64) {
+      urlFoto = guardarFotoEnDrive(datos.imagenBase64, sucursalFisica, nombreFinal, datos.tipo, sheetConfig);
+    }
+
+    // Reestructuración de Variables
+    let estatusTurno = "";    // Col I (Index 8)
+    let horasTrabajadas = ""; // Col J (Index 9)
+    let tiempoComida = "";    // Col L (Index 11) - Nota: Tipo Asistencia es K
+    
+    // NUEVO CÓDIGO INICIO: Variable cierre forzado inicial
+    let esCierreForzado = ""; // Col N (Index 13)
+    // NUEVO CÓDIGO FIN
+
+    let infoExtraLog = datos.turno || "";
+
+    if (datos.tipo === "Entrada") {
+       estatusTurno = "ACTIVO"; 
+
+    } else if (datos.tipo === "Salida Comida") {
+       estatusTurno = "COMIENDO"; 
+
+    } else if (datos.tipo === "Regreso Comida") {
+       const resComida = calcularTiempoComida(fechaHora, sucursalFisica, nombreFinal, sheetReg, sheetConfig);
+       tiempoComida = formatMinutesToHHMM(resComida.minutos); 
+       infoExtraLog = `${tiempoComida} comida`;
+       estatusTurno = "ACTIVO"; 
+
+    } else if (datos.tipo === "Salida") {
+       if (horaEntradaRegistrada) {
+         let diffMs = fechaHora - horaEntradaRegistrada;
+         let diffMins = Math.floor(diffMs / 60000);
+         
+         horasTrabajadas = formatMinutesToHHMM(diffMins); 
+         
+         estatusTurno = "TERMINADO"; 
+         infoExtraLog = horasTrabajadas;
+       } else { 
+         estatusTurno = "TERMINADO"; 
+         infoExtraLog = "Error (Sin Entrada)"; 
+       }
+       // NUEVO CÓDIGO INICIO: Marcar es_cierre_forzado como "NN" (Salida Normal)
+       esCierreForzado = "NN";
+       // NUEVO CÓDIGO FIN
+    }
+
+    sheetReg.appendRow([fechaHora, datos.tipo, sucursalRegistroDisplay, nombreFinal, datos.idIngresado, urlFoto, estatusTurno, infoExtraLog]);
+    
+    actualizarTracker(
+      sheetTracker, filaEncontrada, fechaHora, sucursalRegistroDisplay, datos.idIngresado, nombreFinal, 
+      datos.tipo, datos.esApoyo, estatusTurno, horasTrabajadas, tiempoComida, datos.turno, esCierreForzado
+    );
+
+    return { exito: true, mensaje: datos.tipo + " Registrada correctamente." };
+  } catch (e) { return { exito: false, mensaje: "Error: " + e.toString() }; } finally { bloqueo.releaseLock(); }
+}
+
+// --- 4. ADMIN & SUCURSALES (NUEVO) ---
+function obtenerEstatusSucursales() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetTracker = ss.getSheetByName('Asistencia_Diaria');
+  const sheetConfig = ss.getSheetByName('Configuracion');
+  
+  if(!sheetTracker || !sheetConfig) return [];
+
+  const datosConfig = sheetConfig.getDataRange().getValues();
+  if(datosConfig.length > 0 && datosConfig[0][0].toString().toLowerCase().includes("sucursal")) datosConfig.shift();
+  
+  let mapaSucursales = {}; 
+  
+  datosConfig.forEach(r => {
+    let s = r[0].toString().trim().toUpperCase();
+    if(s) mapaSucursales[s] = 0;
+  });
+
+  const hoy = new Date();
+  const datosTracker = sheetTracker.getDataRange().getValues();
+  
+  for(let i = 1; i < datosTracker.length; i++) {
+    let fecha = datosTracker[i][0];
+    if (fecha instanceof Date && esMismoDia(fecha, hoy)) {
+      // Estatus Turno está ahora en Col I (Index 8)
+      let estado = datosTracker[i][8]; 
+      let sucRaw = datosTracker[i][1].toString().toUpperCase();
+      let sucLimpia = sucRaw.replace(" (APOYO)", "").trim();
+
+      if (estado === "ACTIVO" || estado === "COMIENDO") {
+        if (mapaSucursales.hasOwnProperty(sucLimpia)) {
+          mapaSucursales[sucLimpia]++;
+        } else {
+          mapaSucursales[sucLimpia] = 1;
+        }
+      }
+    }
+  }
+
+  let resultado = [];
+  Object.keys(mapaSucursales).forEach(k => {
+    resultado.push({
+      nombre: k,
+      activos: mapaSucursales[k],
+      estatus: mapaSucursales[k] > 0 ? "EN OPERACION" : "CERRADA"
+    });
+  });
+  
+  return resultado.sort((a,b) => a.nombre.localeCompare(b.nombre));
+}
+
+function validarAdminSoloPassword(password) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetAdmins = ss.getSheetByName('Administradores');
+  if (!sheetAdmins) return { exito: false, mensaje: "No existe hoja Admins" };
+  const datos = sheetAdmins.getDataRange().getValues();
+  for (let i = 1; i < datos.length; i++) {
+    if (datos[i][1].toString().trim() === password.toString().trim()) {
+      return { exito: true, nombreAdmin: datos[i][0] };
+    }
+  }
+  return { exito: false, mensaje: "Contraseña incorrecta" };
+}
+
+function registrarNuevoColaborador(nombre, id, sucursal) {
+  const bloqueo = LockService.getScriptLock();
+  try {
+    bloqueo.waitLock(5000);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Colaboradores');
+    const datos = sheet.getDataRange().getValues();
+    for(let i=0; i<datos.length; i++) {
+      if(datos[i][0].toString() === id.toString()) return { exito: false, mensaje: "El ID ya existe." };
+    }
+    sheet.appendRow([id, nombre.toUpperCase(), sucursal]);
+    return { exito: true, mensaje: "Guardado" };
+  } catch(e) { return { exito: false, mensaje: e.toString() }; } finally { bloqueo.releaseLock(); }
+}
+
+function eliminarColaboradorBD(id) {
+  const bloqueo = LockService.getScriptLock();
+  try {
+    bloqueo.waitLock(5000);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('Colaboradores');
+    const datos = sheet.getDataRange().getValues();
+    for(let i=0; i<datos.length; i++) {
+      if(datos[i][0].toString() === id.toString()) {
+        sheet.deleteRow(i + 1);
+        return { exito: true, mensaje: "Eliminado" };
+      }
+    }
+    return { exito: false, mensaje: "No encontrado" };
+  } catch(e) { return { exito: false, mensaje: e.toString() }; } finally { bloqueo.releaseLock(); }
+}
+
+function borrarRegistroAsistencia(idTrabajador, nombreColaborador) {
+  const bloqueo = LockService.getScriptLock();
+  try {
+    bloqueo.waitLock(5000);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetTracker = ss.getSheetByName('Asistencia_Diaria');
+    const hoy = new Date();
+    
+    const datos = sheetTracker.getDataRange().getValues();
+    let rowToDelete = -1;
+
+    for(let i = 1; i < datos.length; i++) {
+       let fecha = datos[i][0];
+       let id = datos[i][2];
+       let nombre = datos[i][3];
+       
+       if (fecha instanceof Date && esMismoDia(fecha, hoy)) {
+           if ((id.toString() == idTrabajador.toString()) || (nombre === nombreColaborador)) {
+               rowToDelete = i + 1;
+               break;
+           }
+       }
+    }
+
+    if (rowToDelete > 0) {
+        sheetTracker.deleteRow(rowToDelete);
+        return { exito: true, mensaje: "Registro eliminado correctamente." };
+    } else {
+        return { exito: false, mensaje: "No se encontró el registro de hoy." };
+    }
+  } catch(e) { 
+      return { exito: false, mensaje: "Error al eliminar: " + e.toString() }; 
+  } finally { 
+      bloqueo.releaseLock(); 
+  }
+}
+
+function obtenerDatosAdmin(fechaStr) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetTracker = ss.getSheetByName('Asistencia_Diaria');
+  if(!sheetTracker) return [];
+  let fechaConsulta = fechaStr ? new Date(fechaStr.split('-')[0], fechaStr.split('-')[1] - 1, fechaStr.split('-')[2]) : new Date();
+  
+  const datosTracker = sheetTracker.getDataRange().getValues();
+  const registrosDia = datosTracker.filter((fila, i) => {
+    return i > 0 && fila[0] instanceof Date && esMismoDia(fila[0], fechaConsulta);
+  });
+
+  return registrosDia.map(f => {
+     let nombre = f[3];
+     
+     // Display Comida (Comiendo o Rango)
+     let comidaStatus = "-";
+     let horaSalidaComida = f[5]; 
+     let horaRegresoComida = f[6]; 
+     
+     let hSalidaStr = formatH(horaSalidaComida);
+     let hRegresoStr = formatH(horaRegresoComida);
+
+     if (hSalidaStr && (!hRegresoStr || hRegresoStr === "")) {
+         comidaStatus = "Comiendo " + hSalidaStr;
+     } else if (hSalidaStr && hRegresoStr) {
+         comidaStatus = hSalidaStr + " - " + hRegresoStr;
+     }
+     
+     // Estado Actual ahora está en Col I (Index 8)
+     let estadoActual = f[8] ? f[8] : "Desconocido";
+
+     return {
+        sucursal: f[1], nombre: nombre,
+        entrada: f[4] ? formatH(f[4]) : "--:--",
+        salida: f[7] ? formatH(f[7]) : "--:--",
+        comida: comidaStatus, 
+        estadoActual: estadoActual, 
+        idTrabajador: f[2]
+     };
+  });
+}
+
+// UTILS
+function actualizarTracker(sheet, fila, fecha, sucursal, id, nombre, tipo, esApoyo, estatusTurno, horasTrabajadas, tiempoComida, turno, esCierreForzado) {
+  const horaTexto = Utilities.formatDate(fecha, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "HH:mm");
+  
+  let tipoAsistencia = esApoyo ? "Apoyo" : "Normal";
+  
+  // NUEVO CÓDIGO INICIO: Estructura Actualizada (Sin es_turno_completo)
+  // Col N (13) -> es_cierre_forzado (Ahora NN/SI)
+  
+  if (fila === -1) {
+    let nueva = [
+      fecha,          // A (0)
+      sucursal,       // B (1)
+      id,             // C (2)
+      nombre,         // D (3)
+      horaTexto,      // E (4) - Entrada
+      "",             // F (5) - Salida Comida
+      "",             // G (6) - Regreso Comida
+      "",             // H (7) - Salida Turno
+      estatusTurno,   // I (8)
+      "",             // J (9) - horas_trabajadas
+      tipoAsistencia, // K (10)
+      "",             // L (11) - tiempo_comida
+      turno || "",    // M (12)
+      esCierreForzado || "" // N (13)
+    ];
+    sheet.appendRow(nueva);
+  } else {
+    // ACTUALIZACIÓN
+    if(tipo === "Salida Comida") { 
+      sheet.getRange(fila, 6).setValue(horaTexto); // Col F
+      sheet.getRange(fila, 9).setValue(estatusTurno); // Col I (COMIENDO)
+    }
+    else if(tipo === "Regreso Comida") {
+      sheet.getRange(fila, 7).setValue(horaTexto); // Col G
+      sheet.getRange(fila, 9).setValue(estatusTurno); // Col I (ACTIVO)
+      if(tiempoComida) sheet.getRange(fila, 12).setValue(tiempoComida); // Col L
+    } else if(tipo === "Salida") {
+      sheet.getRange(fila, 8).setValue(horaTexto); // Col H
+      sheet.getRange(fila, 9).setValue("TERMINADO"); // Col I
+      
+      if(horasTrabajadas) sheet.getRange(fila, 10).setValue(horasTrabajadas); // Col J
+      // Col K es tipo_asistencia
+      // Col L es tiempo_comida
+      // Col M es Turno
+      
+      // NUEVO CÓDIGO INICIO: Col N - es_cierre_forzado "NN"
+      sheet.getRange(fila, 14).setValue("NN"); // Col N
+      // NUEVO CÓDIGO FIN
+    }
+  }
+  // NUEVO CÓDIGO FIN
+}
+
+function formatMinutesToHHMM(totalMinutes) {
+  if (isNaN(totalMinutes)) return "00:00";
+  let h = Math.floor(totalMinutes / 60);
+  let m = totalMinutes % 60;
+  return h.toString().padStart(2, '0') + ":" + m.toString().padStart(2, '0');
+}
+
+function calcularTiempoComida(fechaActual, sucursal, nombre, sheetReg, sheetConfig) {
+  const datosReg = sheetReg.getDataRange().getValues();
+  let fechaSalida = null;
+  for (let i = datosReg.length - 1; i > 0; i--) {
+    let rFecha = datosReg[i][0];
+    if (rFecha instanceof Date && esMismoDia(rFecha, fechaActual) && datosReg[i][3].toString().trim() === nombre.trim() && datosReg[i][1] === "Salida Comida") {
+      fechaSalida = rFecha;
+      break;
+    }
+  }
+  if (!fechaSalida) return { tiempoTexto: "N/A", minutos: 0 };
+  
+  let diffMs = fechaActual - fechaSalida;
+  let diffMins = Math.floor(diffMs / 60000);
+  
+  return { tiempoTexto: diffMins + " min", minutos: diffMins };
+}
+
+function guardarFotoEnDrive(base64, sucursal, nombre, tipo, sheetConfig) {
+  try {
+    let sucursalLimpia = sucursal.replace(" (APOYO)", "").trim();
+    const datosConfig = sheetConfig.getDataRange().getValues();
+    let carpetaId = "";
+    for (let i = 1; i < datosConfig.length; i++) {
+      if (datosConfig[i][0].toString().trim() == sucursalLimpia) { 
+        let val = datosConfig[i][1].toString();
+        if(val.includes("folders/")) val = val.split("folders/")[1].split("?")[0];
+        carpetaId = val; break; 
+      }
+    }
+    let carpeta = carpetaId ? DriveApp.getFolderById(carpetaId) : DriveApp.getRootFolder();
+    let blob = Utilities.newBlob(Utilities.base64Decode(base64.split(",")[1]), "image/jpeg", `${nombre}_${tipo}_${Date.now()}.jpg`);
+    return carpeta.createFile(blob).getUrl();
+  } catch(e) { return "Error Img"; }
+}
+
+function crearTriggerCierre() {
+  ScriptApp.newTrigger('ejecutarCierreForzado')
+    .timeBased()
+    .atHour(4)
+    .everyDays(1)
+    .create();
+    
+  // Trigger para forzar cierre de comida (cada hora)
+  ScriptApp.newTrigger('verificarLimitesComida')
+    .timeBased()
+    .everyHours(1)
+    .create();
+}
+
+function ejecutarCierreForzado() {
+  // 1. CONFIGURACIÓN
+  const NOMBRE_HOJA = "Asistencia_Diaria";
+  const COLUMNA_SALIDA = 8; // Columna H (Hora Salida)
+  const COLUMNA_es_cierre_forzado = 14; // Columna N
+  const COLUMNA_ESTATUS_TURNO = 9; // Columna I (Estatus Turno)
+  
+  const INDICE_ENTRADA = 4;
+  const INDICE_SALIDA = 7;
+
+  // Obtenemos la hoja
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOMBRE_HOJA);
+  if (!sheet) return;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return; 
+
+  const rango = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
+  const valores = rango.getValues();
+  
+  // 2. BARRIDO DE DATOS
+  for (let i = 0; i < valores.length; i++) {
+    let fila = i + 2; 
+    let horaEntrada = valores[i][INDICE_ENTRADA]; 
+    let horaSalida = valores[i][INDICE_SALIDA]; 
+    
+    // CONDICIÓN: Si hay entrada PERO la salida está vacía
+    if (horaEntrada !== "" && (horaSalida === "" || horaSalida === null)) {
+      
+      // 3. APLICAR EL CIERRE FORZADO
+      // Escribimos "23:50" en la celda de salida (Columna H)
+      sheet.getRange(fila, COLUMNA_SALIDA).setValue("23:50");
+      
+      // NUEVO CÓDIGO INICIO: Registrar "SI" en lugar de texto largo en Col N
+      sheet.getRange(fila, COLUMNA_es_cierre_forzado).setValue("SI");
+      // NUEVO CÓDIGO FIN
+      
+      // Cambiar estatus de ACTIVO a TERMINADO (Columna I)
+      sheet.getRange(fila, COLUMNA_ESTATUS_TURNO).setValue("TERMINADO");
+      
+      console.log("Cierre forzado aplicado en fila: " + fila);
+    }
+  }
+}
+
+// Función para forzar cierre de comida (>1.5h)
+function verificarLimitesComida() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetTracker = ss.getSheetByName('Asistencia_Diaria');
+  const hoy = new Date();
+  
+  const datos = sheetTracker.getDataRange().getValues();
+  
+  // Limite: 90 minutos (1.5 horas)
+  const LIMITE_MINUTOS = 90;
+  
+  for(let i = 1; i < datos.length; i++) {
+     let fecha = datos[i][0];
+     
+     // Verificar solo registros de hoy
+     if (fecha instanceof Date && esMismoDia(fecha, hoy)) {
+         let horaSalidaComida = datos[i][5]; // Col F (Index 5)
+         let horaRegresoComida = datos[i][6]; // Col G (Index 6)
+         
+         // Si hay salida pero no regreso
+         if (horaSalidaComida && (!horaRegresoComida || horaRegresoComida === "")) {
+             // Calcular tiempo transcurrido
+             let salidaDate = parseHoraTexto(horaSalidaComida, hoy);
+             if (salidaDate) {
+                 let diffMs = hoy - salidaDate;
+                 let diffMins = Math.floor(diffMs / 60000);
+                 
+                 if (diffMins > LIMITE_MINUTOS) {
+                     // FORZAR CIERRE
+                     // Establecer hora de regreso = Salida + 90 min
+                     let limiteDate = new Date(salidaDate.getTime() + (LIMITE_MINUTOS * 60000));
+                     let horaTextoRegreso = Utilities.formatDate(limiteDate, ss.getSpreadsheetTimeZone(), "HH:mm");
+                     
+                     sheetTracker.getRange(i+1, 7).setValue(horaTextoRegreso); // Col G
+                     sheetTracker.getRange(i+1, 9).setValue("ACTIVO"); // Col I (Estado vuelve a activo)
+                     sheetTracker.getRange(i+1, 12).setValue("01:30"); // Col L (Tiempo Comida Fijo)
+                 }
+             }
+         }
+     }
+  }
+}
+
+function esMismoDia(d1, d2) { return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate(); }
+function parseHoraTexto(t, f) { if (!t) return null; if (t instanceof Date) { let d = new Date(f); d.setHours(t.getHours(), t.getMinutes(), 0); return d; } let p = t.toString().split(":"); if (p.length < 2) return null; let d = new Date(f); d.setHours(parseInt(p[0]), parseInt(p[1]), 0); return d; }
+function formatH(val) { if(!val) return ""; if(val instanceof Date) return Utilities.formatDate(val, Session.getScriptTimeZone(), "HH:mm"); return val.toString().substring(0, 5); }
