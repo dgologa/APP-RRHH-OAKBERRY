@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA META TAGS -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#4A1F70">
+    <title>OAKBERRY SUPPLY CHAIN</title>
+    
+    <!-- MANIFEST JSON BASE64 -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk9BS0JFUlJZIFN1cHBseSBDaGFpbiIsCiAgInNob3J0X25hbWUiOiAiT0FLIE9wcyIsCiAgImRlc2NyaXB0aW9uIjogIk9ha2JlcnJ5IFN1cHBseSBDaGFpbiBNYW5hZ2VtZW50IiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNGM0YwRUIiLAogICJ0aGVtZV9jb2xvciI6ICIjNEExRjcwIiwKICAib3JpZW50YXRpb24iOiAicG9ydHJhaXQiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8xMDQwLzEwNDAyNDAucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1040/1040240.png">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+      :root { --oak-bg:#F3F0EB; --oak-purple:#4A1F70; --oak-text:#2C1E38; --oak-orange-start:#F58220; --oak-orange-end:#E03E27; }
+      body { background-color: var(--oak-bg); font-family: 'Montserrat', sans-serif; color: var(--oak-text); padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+
+      .app-header { background-color: var(--oak-purple); padding: 40px 20px 30px; text-align: center; border-radius: 0 0 30px 30px; box-shadow: 0 10px 30px rgba(74,31,112,0.2); position: relative; margin-bottom: 25px; padding-top: env(safe-area-inset-top); }
+      .app-logo { font-weight: 900; color: white; font-size: 1.6rem; letter-spacing: 1px; text-transform: uppercase; }
+      .app-subtitle { color: rgba(255,255,255,0.7); font-size: 0.75rem; font-weight: 700; letter-spacing: 3px; margin-top: 5px; text-transform: uppercase; }
+      .header-btn { position: absolute; top: 35px; background: rgba(255,255,255,0.1); border: none; width: 45px; height: 45px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; }
+      .btn-settings { right: 20px; } .btn-refresh { left: 20px; }
+
+      .oak-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 18px 25px; border-radius: 50px; border: none; font-weight: 800; text-transform: uppercase; font-size: 0.95rem; letter-spacing: 0.5px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); transition: transform 0.1s; position: relative; }
+      .oak-btn:active { transform: scale(0.97); }
+      .btn-primary-gradient { background: linear-gradient(90deg, var(--oak-orange-start), var(--oak-orange-end)); color: white; }
+      .btn-secondary-white { background: white; color: var(--oak-purple); }
+      .btn-dark-purple { background: var(--oak-text); color: white; }
+      .btn-locked { background: #E0E0E0; color: #999; pointer-events: none; }
+      
+      .clean-card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.03); margin-bottom: 20px; }
+      .input-group-oak { background: #F8F6F4; border-radius: 15px; padding: 5px; display: flex; border: 1px solid #EEE; margin-bottom: 15px; }
+      .form-control-oak, .form-select-oak { border: none; background: transparent; font-weight: 700; color: var(--oak-purple); padding: 15px; box-shadow: none; width: 100%; }
+      .form-control-oak:focus { background: transparent; box-shadow: none; }
+      .form-select-oak:focus { background: transparent; box-shadow: none; }
+
+      .hidden { display: none !important; }
+      .product-item { background: white; border-radius: 15px; padding: 20px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
+      .provider-label { background: #EBE5F0; color: var(--oak-purple); display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; margin: 20px 0 10px; text-transform: uppercase; }
+      
+      /* ADMIN STATUS TABLE */
+      .admin-table-container { background: #343a40; border-radius: 15px 15px 0 0; padding: 15px; color: white; font-weight: 800; font-size: 0.8rem; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 1px;}
+      .admin-table-row { background: white; padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 600; }
+      .admin-table-row:last-child { border-radius: 0 0 15px 15px; }
+      .col-suc { width: 40%; text-align: left; }
+      .col-stat { width: 30%; text-align: center; }
+      
+      .status-pill { padding: 5px 12px; border-radius: 20px; font-weight: 800; font-size: 0.7rem; }
+      .pill-ok { background: #fceceb; color: #cc3300; border: 1px solid #cc3300; } 
+      .pill-pend { background: #eee; color: #999; }
+      
+      .btn-exit { border: 1px solid #dc3545; color: #dc3545; background: transparent; font-weight: 800; font-size: 0.75rem; padding: 8px 20px; border-radius: 50px; }
+      
+      /* CONFIG DIAS */
+      .day-check-group { display: flex; justify-content: space-between; margin-bottom: 20px; }
+      .day-check { display: none; }
+      .day-label { width: 35px; height: 35px; border-radius: 50%; background: #eee; color: #999; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
+      .day-check:checked + .day-label { background: var(--oak-purple); color: white; }
+      
+      /* REPORTE DETALLE */
+      .admin-sucursal-card { border-left: 5px solid var(--oak-purple); overflow: hidden; }
+      .admin-prov-header { background: #F8F9FA; padding: 8px 15px; font-weight: bold; font-size: 0.85rem; color: #666; border-top: 1px solid #eee; }
+      .admin-item-row { padding: 8px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+      .admin-total-row { padding: 10px 15px; background: var(--oak-purple); color: white; display: flex; justify-content: space-between; font-weight: bold; }
+
+      /* DIALOG CONFIRMACION */
+      dialog { border: none; border-radius: 20px; padding: 0; width: 90%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease; }
+      dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+      .dialog-header { background: var(--oak-purple); color: white; padding: 20px; text-align: center; font-weight: 800; text-transform: uppercase; }
+      .dialog-body { padding: 20px; max-height: 50vh; overflow-y: auto; background: white; }
+      .dialog-footer { padding: 20px; display: flex; gap: 10px; background: #f8f9fa; }
+      .conf-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.9rem; }
+      .unit-badge { font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #666; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+  </head>
+  <body>
+
+    <div class="app-header">
+      <button class="header-btn btn-refresh" onclick="refreshApp()"><i class="bi bi-arrow-clockwise"></i></button>
+      <button class="header-btn btn-settings" onclick="initAdminLogin()"><i class="bi bi-gear-fill"></i></button>
+      <div class="app-logo">Oakberry</div>
+      <div class="app-subtitle">Supply Chain</div>
+    </div>
+
+    <div class="container" style="max-width: 600px;">
+
+      <div id="loading" class="text-center py-5">
+        <div class="spinner-border text-warning"></div>
+        <p class="mt-3 fw-bold text-muted small">CARGANDO...</p>
+      </div>
+
+      <!-- HOME -->
+      <div id="screen-home" class="hidden px-2">
+        <h6 class="text-muted fw-bold mb-4 ps-2 small">OPERACIONES</h6>
+        <button class="oak-btn btn-primary-gradient" onclick="initFlow('DIARIO')"><i class="bi bi-calendar-check"></i> Inventario Diario</button>
+        <button id="btn-general" class="oak-btn btn-primary-gradient" style="filter: hue-rotate(-15deg);" onclick="initFlow('GENERAL')"><i class="bi bi-clipboard-data"></i> Inventario General</button>
+        <button class="oak-btn btn-secondary-white" onclick="initFlow('ENTRADA')"><i class="bi bi-box-seam"></i> Entrada Mercancía</button>
+      </div>
+
+      <!-- LOGIN ADMIN -->
+      <div id="screen-admin-login" class="hidden">
+        <div class="clean-card text-center">
+          <h4 class="fw-bold mb-4" style="color:var(--oak-purple)">ADMIN ACCESS</h4>
+          <div class="input-group-oak"><select id="adm-user" class="form-select form-select-oak"><option selected disabled>Usuario</option></select></div>
+          <div class="input-group-oak"><input type="password" id="adm-pass" class="form-control form-control-oak" placeholder="Contraseña"></div>
+          <button id="btn-adm-go" class="oak-btn btn-dark-purple mt-2" onclick="doAdminLogin()">ENTRAR</button>
+          <button class="btn btn-link text-muted w-100 fw-bold small" onclick="goHome()">VOLVER</button>
+          <div id="adm-msg" class="text-danger fw-bold small mt-3"></div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD ADMIN -->
+      <div id="screen-admin-dash" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+          <h5 class="fw-bold m-0" style="color:var(--oak-purple)">DASHBOARD</h5>
+          <button class="btn-exit" onclick="goHome()">SALIR</button>
+        </div>
+        <button class="oak-btn btn-primary-gradient" onclick="loadAdminReport()"><i class="bi bi-eye"></i> VER REPORTE DETALLADO</button>
+        <div class="mb-4 shadow-sm" style="border-radius:15px;">
+          <div class="admin-table-container"><div class="col-suc">SUCURSAL</div><div class="col-stat">DIARIO</div><div class="col-stat">GRAL</div></div>
+          <div id="adm-list-container"></div>
+        </div>
+        <div class="clean-card">
+          <h6 class="fw-bold mb-3 text-muted small text-uppercase">Configuración Días Inventario General</h6>
+          <div class="day-check-group">
+            <label><input type="checkbox" class="day-check" value="1"><span class="day-label">L</span></label>
+            <label><input type="checkbox" class="day-check" value="2"><span class="day-label">M</span></label>
+            <label><input type="checkbox" class="day-check" value="3"><span class="day-label">M</span></label>
+            <label><input type="checkbox" class="day-check" value="4"><span class="day-label">J</span></label>
+            <label><input type="checkbox" class="day-check" value="5"><span class="day-label">V</span></label>
+            <label><input type="checkbox" class="day-check" value="6"><span class="day-label">S</span></label>
+            <label><input type="checkbox" class="day-check" value="0"><span class="day-label">D</span></label>
+          </div>
+          <button class="oak-btn btn-secondary-white m-0" onclick="saveConfigDays()">ACTUALIZAR DÍAS</button>
+        </div>
+        <button class="oak-btn btn-dark-purple" onclick="saveClose()"><i class="bi bi-save"></i> GUARDAR CIERRE DEL DÍA</button>
+      </div>
+      
+      <!-- DETALLES REPORTE -->
+      <div id="screen-admin-report" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4 px-2"><h5 class="fw-bold m-0 text-oak">REPORTE HOY</h5><button class="btn btn-sm btn-dark rounded-pill fw-bold" onclick="navTo('screen-admin-dash')">VOLVER</button></div>
+        <div id="report-container"></div>
+      </div>
+
+      <!-- OPERATIVO LOGIN -->
+      <div id="screen-op-login" class="hidden">
+        <div class="clean-card text-center">
+          <h4 class="fw-bold mb-4" style="color:var(--oak-purple)">IDENTIFICACIÓN</h4>
+          <div class="input-group-oak"><select id="op-suc" class="form-select form-select-oak"><option disabled selected>Sucursal</option></select></div>
+          <div class="input-group-oak"><select id="op-col" class="form-select form-select-oak" disabled><option selected>Colaborador</option></select></div>
+          <div class="input-group-oak"><input type="number" id="op-id" class="form-control form-control-oak text-center" placeholder="ID Personal"></div>
+          <button class="oak-btn btn-primary-gradient mt-2" onclick="doOpLogin()">INGRESAR</button>
+          <button class="btn btn-link text-muted w-100 fw-bold small" onclick="goHome()">VOLVER</button>
+          <div id="op-msg" class="text-danger fw-bold small mt-3"></div>
+        </div>
+      </div>
+
+      <!-- WORK SCREEN -->
+      <div id="screen-work" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+          <span class="badge bg-dark rounded-pill px-3 py-2" id="work-user">User</span>
+          <button class="btn-exit" onclick="goHome()">SALIR</button>
+        </div>
+        <h5 class="fw-bold mb-4 text-center" style="color:var(--oak-purple)" id="work-title">TITULO</h5>
+        <div id="work-container"></div>
+        <div class="fixed-bottom p-3 bg-white border-top shadow-lg"><button class="oak-btn btn-primary-gradient m-0" id="btn-submit" onclick="submitWork()">ENVIAR REPORTE</button></div>
+      </div>
+
+      <div id="screen-success" class="hidden text-center py-5"><div class="mb-4 text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div><h3 class="fw-bold mb-3" style="color:var(--oak-purple)">¡ÉXITO!</h3><p class="text-muted fw-bold mb-5 px-4" id="suc-msg"></p><button class="oak-btn btn-secondary-white" style="width:auto;margin:0 auto;" onclick="goHome()">VOLVER</button></div>
+      
+      <!-- DIALOGO CONFIRMACION -->
+      <dialog id="confirmDialog">
+        <div class="dialog-header">CONFIRMAR ENVÍO</div>
+        <div class="dialog-body">
+          <p class="text-center text-muted small mb-3">Revisa los datos antes de enviar.</p>
+          <div id="dialogContent"></div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn btn-secondary w-50" onclick="closeDialog()">EDITAR</button>
+          <button class="btn btn-success w-50 fw-bold" onclick="finalSend()">CONFIRMAR</button>
+        </div>
+      </dialog>
+
+    </div>
+
+    <script>
+      // ... MOCK ...
+      if (typeof google === 'undefined') {
+        window.google = { script: { run: { withSuccessHandler: function(cb) { return { withFailureHandler: function(ec) { return {
+          obtenerDatosIniciales: function() { setTimeout(()=>cb({diario:[{nombre:"Vaso",unidad:"PZ"}], general:[{nombre:"Acai",unidad:"BOTE",empaques:"Bote"}], empaques:[{nombre:"Bote",tipo:"R",valor:100}], usuarios:[{sucursal:"Roma",nombre:"Juan",id:"123"}], admins:["Admin"], config:{diasGeneral:[1,4], diaActual:1}}),800); },
+          loginAdminUser: function() { setTimeout(()=>cb({success:true}),800); },
+          obtenerReporteAdminDetallado: function() { setTimeout(()=>cb({"Roma":{totalDinero:5000, grupos:{"ProvA":[{producto:"X", cantidad:10, total:100}]}}}),1000); },
+          obtenerDashboardAdmin: function() { setTimeout(()=>cb({reporte:[{sucursal:"Roma", diario:"PENDIENTE", general:"PENDIENTE"}], configDias:[1,4]}),800); },
+          guardarTransaccion: function() { setTimeout(()=>cb("OK Mock"),800); },
+          guardarConfigDias: function() { setTimeout(()=>cb("Dias Guardados"),800); }
+        }}}}}}};
+      }
+
+      var DB={}, SESS={}, CART=[], CURRENT_PAYLOAD=null;
+
+      window.onload = function() { refreshApp(); };
+      function refreshApp() { document.getElementById('loading').classList.remove('hidden'); document.getElementById('screen-home').classList.add('hidden'); google.script.run.withSuccessHandler(init).withFailureHandler(alert).obtenerDatosIniciales(); }
+
+      function init(d) {
+        DB=d;
+        var s=document.getElementById('op-suc'), sv=document.getElementById('val-suc'); // Unused but kept
+        s.innerHTML='<option disabled selected>Sucursal</option>'; 
+        [...new Set(DB.usuarios.map(u=>u.sucursal))].forEach(x=>{ s.add(new Option(x,x)); });
+        var sa=document.getElementById('adm-user'); sa.innerHTML='<option selected disabled>Usuario</option>';
+        if(DB.admins.length) DB.admins.forEach(a=>sa.add(new Option(a,a))); else sa.innerHTML='<option disabled>Sin Admins</option>';
+        
+        var btnGen=document.getElementById('btn-general'), allowed=DB.config.diasGeneral.includes(DB.config.diaActual), newBtn=btnGen.cloneNode(true);
+        btnGen.parentNode.replaceChild(newBtn, btnGen); btnGen=newBtn;
+        if(allowed){ btnGen.innerHTML='<i class="bi bi-clipboard-data"></i> Inventario General'; btnGen.onclick=function(){initFlow('GENERAL');}; btnGen.classList.remove('btn-locked'); }
+        else{ btnGen.innerHTML='<i class="bi bi-lock-fill"></i> Inv. General (Cerrado)'; btnGen.classList.add('btn-locked'); }
+        navTo('screen-home'); document.getElementById('loading').classList.add('hidden');
+      }
+
+      function navTo(id) { document.querySelectorAll('[id^="screen-"]').forEach(d=>d.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); window.scrollTo(0,0); }
+      function goHome() { SESS={}; CART=[]; document.getElementById('adm-pass').value=''; document.getElementById('op-id').value=''; document.getElementById('op-suc').selectedIndex=0; document.getElementById('op-col').disabled=true; navTo('screen-home'); }
+
+      // --- ADMIN ---
+      function initAdminLogin(){ document.getElementById('adm-msg').innerText=""; navTo('screen-admin-login'); }
+      function doAdminLogin(){ var u=document.getElementById('adm-user').value, p=document.getElementById('adm-pass').value; if(!u||u.includes('Usuario')||!p){document.getElementById('adm-msg').innerText="Faltan datos";return;} document.getElementById('btn-adm-go').disabled=true; google.script.run.withSuccessHandler(r=>{ document.getElementById('btn-adm-go').disabled=false; if(r.success) loadDash(); else document.getElementById('adm-msg').innerText=r.msg; }).withFailureHandler(alert).loginAdminUser(u,p); }
+      function loadDash(){ google.script.run.withSuccessHandler(res=>{ var d=res.reporte; var t=document.getElementById('adm-list-container'); t.innerHTML=''; if(d.length===0){t.innerHTML='<div class="p-3 text-center text-muted">Sin sucursales</div>';}else{d.forEach(r=>{ var c1=r.diario=='CARGADO'?'<i class="bi bi-check-circle-fill text-success" style="font-size:1.3rem;"></i>':'<i class="bi bi-x-circle-fill text-danger" style="font-size:1.3rem;"></i>'; var c2=r.general=='NO TOCA'?'<i class="bi bi-dash-circle text-muted" style="font-size:1.3rem;"></i>' : (r.general=='CARGADO'?'<i class="bi bi-check-circle-fill text-success" style="font-size:1.3rem;"></i>':'<i class="bi bi-x-circle-fill text-danger" style="font-size:1.3rem;"></i>'); t.innerHTML+=`<div class="admin-table-row"><div class="col-suc">${r.sucursal}</div><div class="col-stat">${c1}</div><div class="col-stat">${c2}</div></div>`; });} document.querySelectorAll('.day-check').forEach(c=>c.checked=res.configDias.includes(parseInt(c.value))); navTo('screen-admin-dash'); }).obtenerDashboardAdmin(); }
+      function loadAdminReport() { document.getElementById('report-container').innerHTML='<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>'; navTo('screen-admin-report'); google.script.run.withSuccessHandler(rep=>{ var html=''; if(Object.keys(rep).length===0) html='<div class="alert alert-warning text-center">Sin datos hoy.</div>'; for(var s in rep){ var d=rep[s]; var tf=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(d.totalDinero); html+=`<div class="clean-card admin-sucursal-card mb-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="fw-bold m-0 text-oak">${s}</h5></div>${Object.keys(d.grupos).map(p=>`<div class="admin-prov-header">${p}</div>${d.grupos[p].map(i=>`<div class="admin-item-row"><span>${i.producto} (${i.cantidad})</span><span class="text-muted small">$${i.total.toFixed(2)}</span></div>`).join('')}`).join('')}<div class="admin-total-row mt-2"><span>TOTAL</span><span>${tf}</span></div></div>`; } document.getElementById('report-container').innerHTML=html; }).obtenerReporteAdminDetallado(); }
+      function saveConfigDays(){ var c=document.querySelectorAll('.day-check:checked'); if(c.length<1||c.length>2){alert("Selecciona 1 o 2 días.");return;} var dias=Array.from(c).map(x=>parseInt(x.value)); google.script.run.withSuccessHandler(alert).guardarConfigDias(dias); }
+      function saveClose(){ google.script.run.withSuccessHandler(r=>alert(r)).guardarCierreDia(); }
+
+      // --- OPERATIVO ---
+      function initFlow(m){ SESS.mode=m; navTo('screen-op-login'); }
+      document.getElementById('op-suc').addEventListener('change', function(){ var sc=this.value, sel=document.getElementById('op-col'); sel.innerHTML='<option disabled selected>Colaborador</option>'; sel.disabled=false; DB.usuarios.filter(u=>u.sucursal==sc).forEach(u=>sel.add(new Option(u.nombre,u.nombre))); });
+      function doOpLogin(){ var s=document.getElementById('op-suc').value, c=document.getElementById('op-col').value, i=document.getElementById('op-id').value; var v=DB.usuarios.find(u=>u.sucursal==s && u.nombre==c && u.id==i); if(v){ SESS.user=v; setupWorkScreen(); } else document.getElementById('op-msg').innerText="Error"; }
+      
+      function setupWorkScreen(){
+         document.getElementById('work-user').innerText=SESS.user.nombre; var c=document.getElementById('work-container'); c.innerHTML=''; var t=document.getElementById('work-title');
+         
+         if(SESS.mode==='DIARIO'){ 
+           t.innerText="INVENTARIO DIARIO"; 
+           DB.diario.forEach(p=>{ 
+             var st=(p.unidad.toUpperCase().includes('KG')||p.unidad.toUpperCase().includes('L')||p.unidad.toUpperCase().includes('LT')) ? 0.1 : 1; 
+             c.innerHTML+=`<div class="product-item"><div class="d-flex justify-content-between align-items-center mb-3"><span class="fw-bold" style="color:var(--oak-purple)">${p.nombre}</span><span class="badge bg-light text-secondary border rounded-pill">${p.unidad}</span></div><div class="input-group"><button class="btn btn-outline-secondary rounded-start" style="width:50px" onclick="adj(this,-${st})">-</button><input type="number" class="form-control text-center fw-bold inp-val cacheable" data-p="${p.nombre}" placeholder="0" step="${st}" style="border-radius:0" oninput="saveToCache()"><button class="btn btn-outline-secondary rounded-end" style="width:50px" onclick="adj(this,${st})">+</button></div></div>`; 
+           }); 
+         }
+         else if(SESS.mode==='GENERAL'){ 
+            t.innerText="INVENTARIO GENERAL"; var gr={}; 
+            DB.general.forEach(p=>{var k=p.proveedor||"OTROS"; if(!gr[k])gr[k]=[]; gr[k].push(p)}); 
+            for(var g in gr){ 
+              c.innerHTML+=`<div class="provider-label">${g}</div>`; 
+              gr[g].forEach(p=>{ 
+                var ops='<option value="">-</option>'; if(p.empaques) p.empaques.split(',').forEach(e=>ops+=`<option value="${e.trim()}">${e.trim()}</option>`); 
+                c.innerHTML+=`<div class="product-item" id="c-${p.nombre}">
+                  <div class="fw-bold mb-3" style="color:var(--oak-purple)">
+                    ${p.nombre} 
+                    <div class="float-end">
+                      <span class="badge bg-light text-secondary border me-1">${p.unidad}</span>
+                      <span class="badge bg-dark" id="t-${p.nombre}">0</span>
+                    </div>
+                  </div>
+                  ${row('BACK',p.nombre,ops)}${row('FRONT',p.nombre,ops)}${row('USO',p.nombre,ops)}
+                </div>`; 
+              }); 
+            } 
+         }
+         else { t.innerText="ENTRADA"; var opts=DB.general.map(p=>`<option value="${p.nombre}">${p.nombre}</option>`).join(''); c.innerHTML=`<div class="clean-card"><label class="small fw-bold text-muted mb-2">PRODUCTO</label><select id="e-prod" class="form-select mb-3" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;">${opts}</select><label class="small fw-bold text-muted mb-2">CANTIDAD</label><input type="number" id="e-qty" class="form-control mb-4" style="background:#F8F6F4;border:none;padding:15px;border-radius:10px;font-weight:bold;"><button class="oak-btn btn-dark-purple m-0" onclick="addCart()">+ AGREGAR</button></div><div id="cart-list"></div>`; CART=[]; renderCart(); }
+         
+         navTo('screen-work');
+         
+         if(SESS.mode !== 'GENERAL') loadFromCache();
+      }
+      
+      function row(l,p,o){ return `<div class="row g-2 mb-2 align-items-center row-calc"><div class="col-2 small fw-bold text-muted">${l}</div><div class="col-5"><select class="form-select form-select-sm ie cacheable" style="border-radius:8px;font-weight:600" onchange="calc('${p}');saveToCache()">${o}</select></div><div class="col-3"><input type="number" class="form-control form-control-sm iq text-center cacheable" style="border-radius:8px;font-weight:600" oninput="calc('${p}');saveToCache()"></div><div class="col-2 text-end small fw-bold iv text-primary">0</div></div>`; }
+      function adj(b,v){ 
+         var i=b.parentElement.querySelector('input'); 
+         var val = parseFloat(i.value) || 0;
+         var newVal = parseFloat((val + v).toFixed(2));
+         i.value = Math.max(0, newVal); 
+         i.oninput(); 
+      }
+      function calc(p){ 
+         var tot=0; 
+         document.getElementById('c-'+p).querySelectorAll('.row-calc').forEach(r=>{ 
+           var e=r.querySelector('.ie').value, q=r.querySelector('.iq').value, n=0, m=DB.empaques.find(x=>x.nombre==e); 
+           if(m&&q>0) n=(m.tipo=='M')?q*m.valor:Math.max(0,q-m.valor); 
+           r.querySelector('.iv').innerText=parseFloat(n).toFixed(1); 
+           tot+=n; 
+         }); 
+         document.getElementById('t-'+p).innerText=parseFloat(tot).toFixed(1); 
+      }
+      function addCart(){ var p=document.getElementById('e-prod').value, q=document.getElementById('e-qty').value; if(!p||q<=0)return; CART.push({producto:p,cantidad:q}); renderCart(); document.getElementById('e-qty').value=''; }
+      function renderCart(){ document.getElementById('cart-list').innerHTML=CART.map((c,i)=>`<div class="d-flex justify-content-between border-bottom py-3 px-2"><span>${c.producto}</span><span>${c.cantidad} <i class="bi bi-x-circle-fill text-danger ms-2" onclick="CART.splice(${i},1);renderCart()"></i></span></div>`).join(''); }
+      
+      // NUEVO CÓDIGO INICIO: Helper para obtener unidad
+      function getUnidadMedida(prodName) {
+        var catalog = SESS.mode === 'DIARIO' ? DB.diario : DB.general;
+        var item = catalog.find(p => p.nombre === prodName);
+        return item ? item.unidad : '';
+      }
+      // NUEVO CÓDIGO FIN
+
+      // NUEVO CÓDIGO INICIO: Lógica de Relleno de Ceros
+      function generarPayloadCompleto(itemsCapturados) {
+        var catalogoMaestro = SESS.mode === 'DIARIO' ? DB.diario : DB.general;
+        
+        return catalogoMaestro.map(prodMaestro => {
+          // Buscar si el usuario capturó este producto
+          var capturado = itemsCapturados.find(i => i.producto === prodMaestro.nombre);
+          
+          if (capturado) {
+            return capturado; // Si existe, usamos el dato del usuario
+          } else {
+            // Si no existe, creamos un registro en cero
+            if (SESS.mode === 'DIARIO' || SESS.mode === 'ENTRADA') {
+              return { 
+                producto: prodMaestro.nombre, 
+                cantidad: 0 
+              };
+            } else {
+              // Modo GENERAL requiere estructura compleja
+              return { 
+                producto: prodMaestro.nombre, 
+                proveedor: prodMaestro.proveedor, 
+                back: 0, front: 0, uso: 0, total: 0 
+              };
+            }
+          }
+        });
+      }
+      // NUEVO CÓDIGO FIN
+
+      function submitWork(){ 
+        var items=[]; 
+        var tipoRegistro = SESS.mode;
+        
+        if(SESS.mode==='DIARIO'){ 
+           document.querySelectorAll('.inp-val').forEach(i=>{if(i.value>0)items.push({producto:i.dataset.p,cantidad:i.value})}); 
+           tipoRegistro = 'INVENTARIO'; 
+        } 
+        else if(SESS.mode==='GENERAL'){ document.querySelectorAll('.product-item').forEach(c=>{ var p=c.id.replace('c-',''), t=parseFloat(document.getElementById('t-'+p).innerText)||0; if(t>0){ var rs=c.querySelectorAll('.row-calc'); items.push({producto:p,proveedor:DB.general.find(x=>x.nombre==p).proveedor,back:rs[0].querySelector('.iv').innerText,front:rs[1].querySelector('.iv').innerText,uso:rs[2].querySelector('.iv').innerText,total:t}); } }); } 
+        else items=CART; 
+        
+        // Comentado validacion vacio para permitir ceros si se desea, o mantener si se requiere al menos 1
+        // if(!items.length && SESS.mode!=='ENTRADA') return alert("Inventario Vacío"); 
+        
+        // NUEVO CÓDIGO INICIO: Generar payload completo con ceros
+        var itemsCompletos = items; 
+        if (SESS.mode !== 'ENTRADA') { // Entrada no necesita rellenar con ceros todo el catalogo
+             itemsCompletos = generarPayloadCompleto(items);
+        }
+
+        CURRENT_PAYLOAD = {
+           tipo:tipoRegistro, 
+           sucursal:SESS.user.sucursal,
+           colaborador:SESS.user.nombre,
+           items:itemsCompletos // Usamos la lista completa
+        };
+        
+        showConfirmDialog(items); // Mostramos solo lo capturado para facilitar lectura
+        // NUEVO CÓDIGO FIN
+      }
+      
+      // NUEVO CÓDIGO INICIO: Funciones de Diálogo
+      function showConfirmDialog(items) {
+        var html = '<ul class="list-group list-group-flush">';
+        if(items.length === 0) html += '<li class="list-group-item text-center text-muted">Sin cantidades registradas (Se enviará todo en 0)</li>';
+        
+        items.forEach(i => {
+           var qty = i.total !== undefined ? i.total : i.cantidad;
+           var unit = getUnidadMedida(i.producto);
+           html += `<li class="conf-item"><div>${i.producto} <span class="unit-badge">${unit}</span></div><div class="fw-bold">${qty}</div></li>`;
+        });
+        html += '</ul>';
+        document.getElementById('dialogContent').innerHTML = html;
+        document.getElementById('confirmDialog').showModal();
+      }
+      
+      function closeDialog() {
+        document.getElementById('confirmDialog').close();
+      }
+      
+      function finalSend() {
+        closeDialog();
+        document.getElementById('btn-submit').disabled=true; 
+        document.getElementById('btn-submit').innerText="ENVIANDO...";
+        
+        google.script.run.withSuccessHandler(r=>{ 
+           document.getElementById('btn-submit').disabled=false; 
+           document.getElementById('suc-msg').innerText=r; 
+           clearCache(); 
+           navTo('screen-success'); 
+        }).withFailureHandler(function(e){
+           alert("Error al enviar: " + e);
+           document.getElementById('btn-submit').disabled=false;
+        }).guardarTransaccion(CURRENT_PAYLOAD);
+      }
+      // NUEVO CÓDIGO FIN
+
+      // --- CACHE ---
+      function saveToCache() {
+        if(!SESS.user || !SESS.mode) return;
+        var data = {};
+        document.querySelectorAll('input.cacheable').forEach(el => { if(el.value) data[el.id || el.dataset.p || el.dataset.prod] = el.value; });
+        document.querySelectorAll('select.cacheable').forEach(el => { var row = el.closest('tr'); if(row) { var prod = el.getAttribute('onchange').match(/'([^']+)'/)[1]; var tipo = row.cells[0].innerText; data[prod + '_' + tipo] = el.value; } });
+        localStorage.setItem('oak_cache_' + SESS.mode + '_' + SESS.user.sucursal, JSON.stringify(data));
+      }
+      function loadFromCache() {
+        var saved = localStorage.getItem('oak_cache_' + SESS.mode + '_' + SESS.user.sucursal);
+        if(!saved) return;
+        var data = JSON.parse(saved);
+        document.querySelectorAll('input.cacheable').forEach(el => { var k = el.id || el.dataset.p || el.dataset.prod; if(data[k]) { el.value = data[k]; if(el.oninput) el.oninput(); } });
+        document.querySelectorAll('select.cacheable').forEach(el => { var row = el.closest('tr'); if(row) { var p = el.getAttribute('onchange').match(/'([^']+)'/)[1]; var t = row.cells[0].innerText; var k = p + '_' + t; if(data[k]) { el.value = data[k]; if(el.onchange) el.onchange(); } } });
+      }
+      function clearCache() { localStorage.removeItem('oak_cache_' + SESS.mode + '_' + SESS.user.sucursal); }
+      
+      // Instalación PWA Hint
+      window.addEventListener('load', () => {
+        if (!window.matchMedia('(display-mode: standalone)').matches && !window.navigator.standalone) {
+          console.log('Navegador detectado. Instala la app para mejor experiencia.');
+        }
+      });
+    </script>
+  </body>
+</html>
